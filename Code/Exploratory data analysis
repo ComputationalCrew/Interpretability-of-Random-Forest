@@ -1,0 +1,539 @@
+# Loading library
+library(magrittr) # needs to be run every time you start R and want to use %>%
+library(dplyr)    # alternatively, this also loads %>%
+library(ggplot2)
+library(psych)
+library(corrr)
+library(tidyverse)
+library(gridExtra)
+library(rsample)   # data splitting
+library(ggplot2)   # allows extension of visualizations
+library(dplyr)     # basic data transformation
+#library(h2o)       # machine learning modeling
+library(iml)       # ML interprtation
+library(stargazer) #We have to library the package every time we use
+library(tigerstats)
+library(skimr)
+
+
+df <- read.csv("...")
+
+
+df_v1 <- subset(df, select=c('Number','Incidence',
+                             'Year.planted','Planting.material','Virus.free',
+                             'Previous.hop','Years.in.hop','Yield.lbsA',
+                             'Drip.Configuration','Drip.Emitter.Flow.Rate.gpm','Irrigation.Scheduling',
+                             'Irrigation.total.for.season','First.Irrigation.Date','Last.Irrigation.Date',
+                             'Irrigation.Source','Salts','Texture','Na','CEC',
+                             'OM','Phos','K','Ca','Mg','S','Zn',
+                             'Fe','Mn','Cu','B','Clay',
+                             'Silt','Sand','Resp.mg.CO2','NO3_N',
+                             'NH4_N','InorgN','PMN','pH','POXC',
+                             'Dissolved.org.C',
+                             'Dissolved.inorgC','WSA',
+                             'Org.C','Total.N','Org.N','Total.N.applied',
+                             'Date.of.first.N','Date.of.last.N',
+                             'Spring.pruning.method','Spring.pruning.date',
+                             'Tillage.practices','Returned.hop.trash',
+                             'Post.harvest.mowing','Percent.HSVd','Black.vine.weevil.treatment',
+                             'Black.vine.weevil.pressure','Heptachlor',
+                             'Mefenoxam','Desiccant.herbicides',
+                             'Pre_plant.fumigation',
+                             'Temp_Autumn','Temp_Winter',
+                             'Temp_Spring','Temp_Summer',
+                             'Precip_Autumn','Precip_Winter',
+                             'Precip_Spring','Precip_Summer'))
+
+colnames(df_v1) <- c('Number','Incidence',
+                     'Year_planted','Planting_material','Virus_free',
+                     'Previous_hop','Years_in_hop','Yield_lbsA',
+                     'Drip_configuration','Drip_emitter_flow_rate_gpm','Irrigation_scheduling',
+                     'Irrigation.total_for_season','First_irrigation_date','Last_irrigation_date',
+                     'Irrigation.source','Salts','Texture','Na','CEC',
+                     'OM','Phos','K','Ca','Mg','S','Zn',
+                     'Fe','Mn','Cu','B','Clay',
+                     'Silt','Sand','Resp_mg_CO2','NO3_N',
+                     'NH4_N','InorgN','PMN','pH','POXC',
+                     'Dissolved_org_C',
+                     'Dissolved_inorgC','WSA',
+                     'Org_C','Total_N','Org_N','Total_N_applied',
+                     'Date_of_first_N','Date_of_last_N',
+                     'Spring_pruning_method','Spring_pruning_date',
+                     'Tillage_practices','Returned_hop_trash',
+                     'Post_harvest_mowing','Percent_HSVd','Black_vine_weevil_treatment',
+                     'Black_vine_weevil_pressure','Heptachlor',
+                     'Mefenoxam','Desiccant_herbicides',
+                     'Pre_plant_fumigation',
+                     'Temp_Autumn','Temp_Winter',
+                     'Temp_Spring','Temp_Summer',
+                     'Precip_Autumn','Precip_Winter',
+                     'Precip_Spring','Precip_Summer')
+
+
+df_v1$Planting_material <- as.factor(df_v1$Planting_material)
+df_v1$Virus_free <- as.factor(df_v1$Virus_free)
+df_v1$Previous_hop <- as.factor(df_v1$Previous_hop)
+df_v1$Years_in_hop <- as.factor(df_v1$Years_in_hop)
+df_v1$Drip_configuration <- as.factor(df_v1$Drip_configuration)
+df_v1$Irrigation_scheduling <- as.factor(df_v1$Irrigation_scheduling)
+df_v1$Spring_pruning_method <- as.factor(df_v1$Spring_pruning_method)
+df_v1$Tillage_practices <- as.factor(df_v1$Tillage_practices)
+df_v1$Returned_hop_trash <- as.factor(df_v1$Returned_hop_trash)
+df_v1$Post_harvest_mowing <- as.factor(df_v1$Post_harvest_mowing)
+df_v1$Black_vine_weevil_treatment <- as.factor(df_v1$Black_vine_weevil_treatment)
+df_v1$Black_vine_weevil_pressure <- as.factor(df_v1$Black_vine_weevil_pressure)
+df_v1$Heptachlor <- as.factor(df_v1$Heptachlor)
+df_v1$Mefenoxam <- as.factor(df_v1$Mefenoxam)
+df_v1$Desiccant_herbicides <- as.factor(df_v1$Desiccant_herbicides)
+df_v1$Pre_plant_fumigation <- as.factor(df_v1$Pre_plant_fumigation)
+df_v1$Irrigation.source <- as.factor(df_v1$Irrigation.source)
+df_v1$Drip_emitter_flow_rate_gpm <- as.numeric(df_v1$Drip_emitter_flow_rate_gpm)
+df_v1$CEC <- as.integer(df_v1$CEC)
+df_v1$Texture <- as.integer(df_v1$Texture)
+
+
+# Table. Descriptive Statistics
+stargazer(df_v1, type = "text", title="Descriptive statistics", digits=2, out="table1.txt")
+
+
+
+## Correlation plot
+
+library(corrplot)
+library(ggcorrplot) 
+
+df_v1_corr1 <- df_v1 %>%
+  select('Incidence',
+         'Year_planted','Yield_lbsA', 'Drip_emitter_flow_rate_gpm',
+         'Irrigation.total_for_season','First_irrigation_date','Last_irrigation_date',
+         'Date_of_first_N','Date_of_last_N',
+         'Spring_pruning_date')
+
+
+corr <- round(cor(df_v1_corr1, method="s"), 1)
+p.mat <- cor_pmat(df_v1_corr1)
+
+# Leave blank on no significant coefficient
+png(file = "SpearmanCorr1.png", width=2500, height=2500, res=300)
+ggcorrplot(corr,
+           p.mat = p.mat, hc.order = FALSE,
+           type = "lower", insig = "blank"
+)  +
+  theme(axis.line = element_line(colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) 
+dev.off()
+
+df_v1_corr2 <- df_v1 %>%
+  select('Incidence','Salts','Texture','Na','CEC',
+         'K','Ca','Mg','S','Zn',
+         'Fe','Mn','Cu','B')
+
+corr <- round(cor(df_v1_corr2, method="s"), 1)
+p.mat <- cor_pmat(df_v1_corr2)
+
+# Leave blank on no significant coefficient
+png(file = "SpearmanCorr2.png", width=2500, height=2500, res=300)
+ggcorrplot(corr,
+           p.mat = p.mat, hc.order = FALSE,
+           type = "lower", insig = "blank"
+)  +
+  theme(axis.line = element_line(colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) 
+dev.off()
+
+df_v1_corr3 <- df_v1 %>%
+  select('Incidence','Clay',
+         'Silt','Sand','Resp_mg_CO2','NO3_N',
+         'OM','NH4_N','InorgN','PMN','pH','POXC',
+         'Dissolved_org_C',
+         'Dissolved_inorgC','WSA',
+         'Org_C','Total_N','Org_N','Total_N_applied',
+         'Percent_HSVd')
+
+corr <- round(cor(df_v1_corr3, method="s"), 1)
+p.mat <- cor_pmat(df_v1_corr3)
+
+# Leave blank on no significant coefficient
+png(file = "SpearmanCorr3.png", width=2500, height=2500, res=300)
+ggcorrplot(corr,
+           p.mat = p.mat, hc.order = FALSE,
+           type = "lower", insig = "blank"
+)  +
+  theme(axis.line = element_line(colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) 
+dev.off()
+
+
+df_v1_corr4 <- df_v1 %>%
+  select('Incidence',
+         'Temp_Autumn','Temp_Winter',
+         'Temp_Spring','Temp_Summer',
+         'Precip_Autumn','Precip_Winter',
+         'Precip_Spring','Precip_Summer')
+
+corr <- round(cor(df_v1_corr4, method="s"), 1)
+p.mat <- cor_pmat(df_v1_corr4)
+
+# Leave blank on no significant coefficient
+png(file = "SpearmanCorr4.png", width=2500, height=2500, res=300)
+ggcorrplot(corr,
+           p.mat = p.mat, hc.order = FALSE,
+           type = "lower", insig = "blank"
+)  +
+  theme(axis.line = element_line(colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) 
+dev.off()
+
+# Kruskal-Wallis Test and Dunn Test
+
+# Planting_material
+ks <- read.csv(".../categorical_KS_plantmaterial.csv", check.names=FALSE)
+
+results <- combn(unique(ks$group), 2, function(groups) {
+  group1 <- ks %>% filter(group == groups[1]) %>% pull(value)
+  group2 <- ks %>% filter(group == groups[2]) %>% pull(value)
+  ks_test <- ks.test(group1, group2)
+  data.frame(
+    group1 = groups[1],
+    group2 = groups[2],
+    statistic = ks_test$statistic,
+    p_value = ks_test$p.value
+  )
+}, simplify = FALSE)
+
+results_df <- do.call(rbind, results)
+
+print(results_df)
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Planting_material, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Planting_material, data = df_v1, method = "bonferroni")
+
+
+# Virus free
+Virus_free_no <- (df_v1 %>% filter(Virus_free == "No"))$Incidence
+Virus_free_yes <- (df_v1 %>% filter(Virus_free == "Yes"))$Incidence
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Virus_free, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Virus_free, data = df_v1, method = "bonferroni")
+
+
+# Previous_hop
+Previous_hop_no <- (df_v1 %>% filter(Previous_hop == "No"))$Incidence
+Previous_hop_yes <- (df_v1 %>% filter(Previous_hop == "Yes"))$Incidence
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Previous_hop, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Previous_hop, data = df_v1, method = "bonferroni")
+
+
+# Years_in_hop
+Years_in_hop_no <- (df_v1 %>% filter(Years_in_hop == "More than 10"))$Incidence
+Years_in_hop_yes <- (df_v1 %>% filter(Years_in_hop == "Less than 10"))$Incidence
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Years_in_hop, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Years_in_hop, data = df_v1, method = "bonferroni")
+
+
+# Drip_configuration
+ks <- read.csv(".../categorical_KS_dripconfiguration.csv", check.names=FALSE)
+
+results <- combn(unique(ks$group), 2, function(groups) {
+  group1 <- ks %>% filter(group == groups[1]) %>% pull(value)
+  group2 <- ks %>% filter(group == groups[2]) %>% pull(value)
+  ks_test <- ks.test(group1, group2)
+  data.frame(
+    group1 = groups[1],
+    group2 = groups[2],
+    statistic = ks_test$statistic,
+    p_value = ks_test$p.value
+  )
+}, simplify = FALSE)
+
+results_df <- do.call(rbind, results)
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Drip_configuration, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Drip_configuration, data = df_v1, method = "bonferroni")
+
+
+# Irrigation_scheduling
+Irrigation_scheduling_no <- (df_v1 %>% filter(Irrigation_scheduling == "Automated"))$Incidence
+Irrigation_scheduling_yes <- (df_v1 %>% filter(Irrigation_scheduling == "Manual"))$Incidence
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Irrigation_scheduling, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Irrigation_scheduling, data = df_v1, method = "bonferroni")
+
+
+
+# Irrigation.source
+
+ks <- read.csv(".../categorical_KS_irrigationsource.csv", check.names=FALSE)
+
+results <- combn(unique(ks$group), 2, function(groups) {
+  group1 <- ks %>% filter(group == groups[1]) %>% pull(value)
+  group2 <- ks %>% filter(group == groups[2]) %>% pull(value)
+  ks_test <- ks.test(group1, group2)
+  data.frame(
+    group1 = groups[1],
+    group2 = groups[2],
+    statistic = ks_test$statistic,
+    p_value = ks_test$p.value
+  )
+}, simplify = FALSE)
+
+results_df <- do.call(rbind, results)
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Irrigation.source, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Irrigation.source, data = df_v1, method = "bonferroni")
+
+
+# Spring_pruning_method
+
+ks <- read.csv(".../categorical_KS_Spring_pruning_method.csv", check.names=FALSE)
+
+results <- combn(unique(ks$group), 2, function(groups) {
+  group1 <- ks %>% filter(group == groups[1]) %>% pull(value)
+  group2 <- ks %>% filter(group == groups[2]) %>% pull(value)
+  ks_test <- ks.test(group1, group2)
+  data.frame(
+    group1 = groups[1],
+    group2 = groups[2],
+    statistic = ks_test$statistic,
+    p_value = ks_test$p.value
+  )
+}, simplify = FALSE)
+
+results_df <- do.call(rbind, results)
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Spring_pruning_method, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Spring_pruning_method, data = df_v1, method = "bonferroni")
+
+
+
+# Tillage_practices
+
+ks <- read.csv(".../categorical_KS_Tillage_practices.csv", check.names=FALSE)
+
+results <- combn(unique(ks$group), 2, function(groups) {
+  group1 <- ks %>% filter(group == groups[1]) %>% pull(value)
+  group2 <- ks %>% filter(group == groups[2]) %>% pull(value)
+  ks_test <- ks.test(group1, group2)
+  data.frame(
+    group1 = groups[1],
+    group2 = groups[2],
+    statistic = ks_test$statistic,
+    p_value = ks_test$p.value
+  )
+}, simplify = FALSE)
+
+results_df <- do.call(rbind, results)
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Tillage_practices, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Tillage_practices, data = df_v1, method = "bonferroni")
+
+# Returned_hop_trash 
+
+ks <- read.csv(".../categorical_KS_Returned_hop_trash.csv", check.names=FALSE)
+
+results <- combn(unique(ks$group), 2, function(groups) {
+  group1 <- ks %>% filter(group == groups[1]) %>% pull(value)
+  group2 <- ks %>% filter(group == groups[2]) %>% pull(value)
+  ks_test <- ks.test(group1, group2)
+  data.frame(
+    group1 = groups[1],
+    group2 = groups[2],
+    statistic = ks_test$statistic,
+    p_value = ks_test$p.value
+  )
+}, simplify = FALSE)
+
+results_df <- do.call(rbind, results)
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Returned_hop_trash , data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Returned_hop_trash , data = df_v1, method = "bonferroni")
+
+
+# Post.harvest.mowing
+Post.harvest.mowing_no <- (df_v1 %>% filter(Post_harvest_mowing == "No"))$Incidence
+Post.harvest.mowing_yes <- (df_v1 %>% filter(Post_harvest_mowing == "Yes"))$Incidence
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Post_harvest_mowing, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Post_harvest_mowing, data = df_v1, method = "bonferroni")
+
+
+# Black.vine.weevil.treatment
+Black.vine.weevil.treatment_no <- (df_v1 %>% filter(Black_vine_weevil_treatment == "No"))$Incidence
+Black.vine.weevil.treatment_yes <- (df_v1 %>% filter(Black_vine_weevil_treatment == "Yes"))$Incidence
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Black_vine_weevil_treatment, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Black_vine_weevil_treatment, data = df_v1, method = "bonferroni")
+
+
+# Black_vine_weevil_pressure 
+
+ks <- read.csv(".../categorical_KS_Black_vine_weevil_pressure.csv", check.names=FALSE)
+
+results <- combn(unique(ks$group), 2, function(groups) {
+  group1 <- ks %>% filter(group == groups[1]) %>% pull(value)
+  group2 <- ks %>% filter(group == groups[2]) %>% pull(value)
+  ks_test <- ks.test(group1, group2)
+  data.frame(
+    group1 = groups[1],
+    group2 = groups[2],
+    statistic = ks_test$statistic,
+    p_value = ks_test$p.value
+  )
+}, simplify = FALSE)
+
+results_df <- do.call(rbind, results)
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Black_vine_weevil_pressure, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Black_vine_weevil_pressure, data = df_v1, method = "bonferroni")
+
+
+# Heptachlor 
+
+ks <- read.csv(".../categorical_KS_Heptachlor.csv", check.names=FALSE)
+
+results <- combn(unique(ks$group), 2, function(groups) {
+  group1 <- ks %>% filter(group == groups[1]) %>% pull(value)
+  group2 <- ks %>% filter(group == groups[2]) %>% pull(value)
+  ks_test <- ks.test(group1, group2)
+  data.frame(
+    group1 = groups[1],
+    group2 = groups[2],
+    statistic = ks_test$statistic,
+    p_value = ks_test$p.value
+  )
+}, simplify = FALSE)
+
+results_df <- do.call(rbind, results)
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Heptachlor, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Heptachlor, data = df_v1, method = "bonferroni")
+
+
+# Mefenoxam
+Mefenoxam_no <- (df_v1 %>% filter(Mefenoxam == "No"))$Incidence
+Mefenoxam_yes <- (df_v1 %>% filter(Mefenoxam == "Yes"))$Incidence
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Mefenoxam, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Mefenoxam, data = df_v1, method = "bonferroni")
+
+
+# Desiccant.herbicides
+Desiccant.herbicides_no <- (df_v1 %>% filter(Desiccant_herbicides == "No"))$Incidence
+Desiccant.herbicides_yes <- (df_v1 %>% filter(Desiccant_herbicides == "Yes"))$Incidence
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Desiccant_herbicides, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Desiccant_herbicides, data = df_v1, method = "bonferroni")
+
+
+# Pre_plant.fumigation
+Pre_plant.fumigation_no <- (df_v1 %>% filter(Pre_plant_fumigation == "No"))$Incidence
+Pre_plant.fumigation_yes <- (df_v1 %>% filter(Pre_plant_fumigation == "Yes"))$Incidence
+
+
+#perform Kruskal-Wallis Test
+kruskal.test(Incidence ~ Pre_plant_fumigation, data = df_v1)
+
+# Perform Dunn's test
+dunnTest(Incidence ~ Pre_plant_fumigation, data = df_v1, method = "bonferroni")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
