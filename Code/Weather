@@ -1,0 +1,13 @@
+devtools::install_github("ropensci/rnoaa")
+library("devtools")
+library("rnoaa")
+
+library(openmeteo)
+
+# For each location,
+
+Number1 <- weather_history(c(latitude, longitude),
+                     start = "2010-10-01",
+                     end = "2025-02-28",
+                     hourly = c("precipitation","temperature_2m")
+)
