@@ -1,0 +1,723 @@
+# Load necessary libraries
+library(caret)
+library(randomForest)
+library(e1071)
+library(readr)
+library(dplyr)
+library(iml)
+
+
+
+df <- read.csv("...", check.names=FALSE)
+
+df_v1 <- subset(df, select=c('Number','Incidence',
+                             'Year.planted','Planting.material','Virus.free',
+                             'Previous.hop','Years.in.hop','Yield.lbsA',
+                             'Drip.Configuration','Drip.Emitter.Flow.Rate.gpm','Irrigation.Scheduling',
+                             'Irrigation.total.for.season','First.Irrigation.Date','Last.Irrigation.Date',
+                             'Irrigation.Source','Salts','Texture','Na','CEC',
+                             'OM','Phos','K','Ca','Mg','S','Zn',
+                             'Fe','Mn','Cu','B','Clay',
+                             'Silt','Sand','Resp.mg.CO2','NO3_N',
+                             'NH4_N','InorgN','PMN','pH','POXC',
+                             'Dissolved.org.C',
+                             'Dissolved.inorgC','WSA',
+                             'Org.C','Total.N','Org.N','Total.N.applied',
+                             'Date.of.first.N','Date.of.last.N',
+                             'Spring.pruning.method','Spring.pruning.date',
+                             'Tillage.practices','Returned.hop.trash',
+                             'Post.harvest.mowing','Percent.HSVd','Black.vine.weevil.treatment',
+                             'Black.vine.weevil.pressure','Heptachlor',
+                             'Mefenoxam','Desiccant.herbicides',
+                             'Pre_plant.fumigation',
+                             'Temp_Autumn','Temp_Winter',
+                             'Temp_Spring','Temp_Summer',
+                             'Precip_Autumn','Precip_Winter',
+                             'Precip_Spring','Precip_Summer'))
+
+colnames(df_v1) <- c('Number','Incidence',
+                     'Year_planted','Planting_material','Virus_free',
+                     'Previous_hop','Years_in_hop','Yield_lbsA',
+                     'Drip_configuration','Drip_emitter_flow_rate_gpm','Irrigation_scheduling',
+                     'Irrigation.total_for_season','First_irrigation_date','Last_irrigation_date',
+                     'Irrigation.source','Salts','Texture','Na','CEC',
+                     'OM','Phos','K','Ca','Mg','S','Zn',
+                     'Fe','Mn','Cu','B','Clay',
+                     'Silt','Sand','Resp_mg_CO2','NO3_N',
+                     'NH4_N','InorgN','PMN','pH','POXC',
+                     'Dissolved_org_C',
+                     'Dissolved_inorgC','WSA',
+                     'Org_C','Total_N','Org_N','Total_N_applied',
+                     'Date_of_first_N','Date_of_last_N',
+                     'Spring_pruning_method','Spring_pruning_date',
+                     'Tillage_practices','Returned_hop_trash',
+                     'Post_harvest_mowing','Percent_HSVd','Black_vine_weevil_treatment',
+                     'Black_vine_weevil_pressure','Heptachlor',
+                     'Mefenoxam','Desiccant_herbicides',
+                     'Pre_plant_fumigation',
+                     'Temp_Autumn','Temp_Winter',
+                     'Temp_Spring','Temp_Summer',
+                     'Precip_Autumn','Precip_Winter',
+                     'Precip_Spring','Precip_Summer')
+
+
+df_v1$Planting_material <- as.factor(df_v1$Planting_material)
+df_v1$Virus_free <- as.factor(df_v1$Virus_free)
+df_v1$Previous_hop <- as.factor(df_v1$Previous_hop)
+df_v1$Years_in_hop <- as.factor(df_v1$Years_in_hop)
+df_v1$Drip_configuration <- as.factor(df_v1$Drip_configuration)
+df_v1$Irrigation_scheduling <- as.factor(df_v1$Irrigation_scheduling)
+df_v1$Spring_pruning_method <- as.factor(df_v1$Spring_pruning_method)
+df_v1$Tillage_practices <- as.factor(df_v1$Tillage_practices)
+df_v1$Returned_hop_trash <- as.factor(df_v1$Returned_hop_trash)
+df_v1$Post_harvest_mowing <- as.factor(df_v1$Post_harvest_mowing)
+df_v1$Black_vine_weevil_treatment <- as.factor(df_v1$Black_vine_weevil_treatment)
+df_v1$Black_vine_weevil_pressure <- as.factor(df_v1$Black_vine_weevil_pressure)
+df_v1$Heptachlor <- as.factor(df_v1$Heptachlor)
+df_v1$Mefenoxam <- as.factor(df_v1$Mefenoxam)
+df_v1$Desiccant_herbicides <- as.factor(df_v1$Desiccant_herbicides)
+df_v1$Pre_plant_fumigation <- as.factor(df_v1$Pre_plant_fumigation)
+df_v1$Irrigation.source <- as.factor(df_v1$Irrigation.source)
+df_v1$Drip_emitter_flow_rate_gpm <- as.numeric(df_v1$Drip_emitter_flow_rate_gpm)
+df_v1$CEC <- as.integer(df_v1$CEC)
+df_v1$Texture <- as.integer(df_v1$Texture)
+
+
+
+#### one hot encoding in R
+
+df_v1 <- mutate(df_v1, Planting_material_Crowns = ifelse(Planting_material=="Crowns",1,0))
+df_v1 <- mutate(df_v1, Planting_material_Pots = ifelse(Planting_material=="Pots",1,0))
+df_v1 <- mutate(df_v1, Planting_material_Pots_Crowns = ifelse(Planting_material=="Pots/Crowns",1,0))
+df_v1 <- mutate(df_v1, Planting_material_Pots_Rhizomes = ifelse(Planting_material=="Pots/Rhizomes",1,0))
+df_v1 <- mutate(df_v1, Planting_material_Rhizomes = ifelse(Planting_material=="Rhizomes",1,0))
+
+df_v1 <- mutate(df_v1, Virus_free_No = ifelse(Virus_free=="No",1,0))
+df_v1 <- mutate(df_v1, Virus_free_Yes = ifelse(Virus_free=="Yes",1,0))
+
+df_v1 <- mutate(df_v1, Previous_hop_No = ifelse(Previous_hop=="No",1,0))
+df_v1 <- mutate(df_v1, Previous_hop_Yes = ifelse(Previous_hop=="Yes",1,0))
+
+df_v1 <- mutate(df_v1, Years_in_hop_More_than_10 = ifelse(Years_in_hop=="More than 10",1,0))
+df_v1 <- mutate(df_v1, Years_in_hop_Less_than_10 = ifelse(Years_in_hop=="Less than 10",1,0))
+
+df_v1 <- mutate(df_v1, Drip_configuration_Single_12 = ifelse(Drip_configuration =="Single 12",1,0))
+df_v1 <- mutate(df_v1, Drip_configuration_Single_24 = ifelse(Drip_configuration =="Single 24",1,0))
+df_v1 <- mutate(df_v1, Drip_configuration_Double_12 = ifelse(Drip_configuration =="Double 12",1,0))
+df_v1 <- mutate(df_v1, Drip_configuration_Double_24 = ifelse(Drip_configuration =="Double 24",1,0))
+
+df_v1 <- mutate(df_v1, Irrigation_scheduling_Automated = ifelse(Irrigation_scheduling=="Automated",1,0))
+df_v1 <- mutate(df_v1, Irrigation_scheduling_Manual = ifelse(Irrigation_scheduling=="Manual",1,0))
+
+df_v1 <- mutate(df_v1, Irrigation.source_Both = ifelse(Irrigation.source =="Both",1,0))
+df_v1 <- mutate(df_v1, Irrigation.source_Canal = ifelse(Irrigation.source =="Canal",1,0))
+df_v1 <- mutate(df_v1, Irrigation.source_Well = ifelse(Irrigation.source =="Well",1,0))
+
+df_v1 <- mutate(df_v1, Tillage_practices_High_Tillage = ifelse(Tillage_practices=="High Tillage",1,0))
+df_v1 <- mutate(df_v1, Tillage_practices_Minimum_Tillage = ifelse(Tillage_practices=="Minimum Tillage",1,0))
+df_v1 <- mutate(df_v1, Tillage_practices_No = ifelse(Tillage_practices=="No",1,0))
+
+df_v1 <- mutate(df_v1, Returned_hop_trash_No = ifelse(Returned_hop_trash=="No",1,0))
+df_v1 <- mutate(df_v1, Returned_hop_trash_Yes = ifelse(Returned_hop_trash=="Yes",1,0))
+df_v1 <- mutate(df_v1, Returned_hop_trash_Composted = ifelse(Returned_hop_trash=="Composted",1,0))
+
+
+df_v1 <- mutate(df_v1, Black_vine_weevil_treatment_No = ifelse(Black_vine_weevil_treatment=="No",1,0))
+df_v1 <- mutate(df_v1, Black_vine_weevil_treatment_Yes = ifelse(Black_vine_weevil_treatment=="Yes",1,0))
+
+df_v1 <- mutate(df_v1, Black_vine_weevil_pressure_Low = ifelse(Black_vine_weevil_pressure=="Low",1,0))
+df_v1 <- mutate(df_v1, Black_vine_weevil_pressure_Low_Moderate = ifelse(Black_vine_weevil_pressure=="Low-Moderate",1,0))
+df_v1 <- mutate(df_v1, Black_vine_weevil_pressure_Moderate = ifelse(Black_vine_weevil_pressure=="Moderate",1,0))
+
+df_v1 <- mutate(df_v1, Heptachlor_No = ifelse(Heptachlor=="No",1,0))
+df_v1 <- mutate(df_v1, Heptachlor_Yes = ifelse(Heptachlor=="Yes",1,0))
+df_v1 <- mutate(df_v1, Heptachlor_Unknown = ifelse(Heptachlor=="Unknown",1,0))
+
+df_v1 <- mutate(df_v1, Desiccant_herbicides_No = ifelse(Desiccant_herbicides=="No",1,0))
+df_v1 <- mutate(df_v1, Desiccant_herbicides_Yes = ifelse(Desiccant_herbicides=="Yes",1,0))
+
+df_v1 <- mutate(df_v1, Pre_plant_fumigation_No = ifelse(Pre_plant_fumigation=="No",1,0))
+df_v1 <- mutate(df_v1, Pre_plant_fumigation_Yes = ifelse(Pre_plant_fumigation=="Yes",1,0))
+
+
+df_v1 <- mutate(df_v1, Spring_pruning_method_Chemical = ifelse(Spring_pruning_method=="Chemical",1,0))
+df_v1 <- mutate(df_v1, Spring_pruning_method_Mechanical = ifelse(Spring_pruning_method=="Mechanical",1,0))
+df_v1 <- mutate(df_v1, Spring_pruning_method_Mowed = ifelse(Spring_pruning_method=="Mowed",1,0))
+df_v1 <- mutate(df_v1, Spring_pruning_method_None = ifelse(Spring_pruning_method=="None",1,0))
+
+
+
+df_rf <- subset(df_v1, select=c('Year_planted', 'Yield_lbsA',
+                                'Drip_emitter_flow_rate_gpm',
+                                'Irrigation.total_for_season','First_irrigation_date','Last_irrigation_date',
+                                'Salts','Texture','Na','CEC',
+                                'OM','Phos','K','Ca','Mg','S','Zn',
+                                'Fe','Mn','Cu','B','Clay',
+                                'Silt','Sand','Resp_mg_CO2','NO3_N',
+                                'NH4_N','InorgN','PMN','pH','POXC',
+                                'Dissolved_org_C','Dissolved_inorgC','WSA',
+                                'Org_C','Total_N','Org_N','Total_N_applied',
+                                'Date_of_first_N','Date_of_last_N','Spring_pruning_date',
+                                'Percent_HSVd',
+                                'Temp_Autumn','Temp_Winter',
+                                'Temp_Spring','Temp_Summer',
+                                'Precip_Autumn','Precip_Winter',
+                                'Precip_Spring','Precip_Summer',
+                             'Planting_material_Crowns','Planting_material_Pots',
+                             'Planting_material_Pots_Crowns', 'Planting_material_Pots_Rhizomes',
+                             'Planting_material_Rhizomes', 'Virus_free_No', 'Virus_free_Yes',
+                             'Previous_hop_No','Previous_hop_Yes',
+                             'Years_in_hop_More_than_10', 'Years_in_hop_Less_than_10',
+                             'Drip_configuration_Single_12','Drip_configuration_Single_24',
+                             'Drip_configuration_Double_12','Drip_configuration_Double_24',
+                             'Irrigation.source_Both','Irrigation.source_Canal',
+                             'Irrigation.source_Well','Tillage_practices_High_Tillage',
+                             'Tillage_practices_Minimum_Tillage','Tillage_practices_No',
+                             'Returned_hop_trash_No','Returned_hop_trash_Yes',
+                             'Returned_hop_trash_Composted','Black_vine_weevil_pressure_Low',
+                             'Black_vine_weevil_pressure_Low_Moderate','Black_vine_weevil_pressure_Moderate',
+                             'Heptachlor_No','Heptachlor_Yes','Heptachlor_Unknown',
+                             'Pre_plant_fumigation_No','Pre_plant_fumigation_Yes',
+                             'Irrigation_scheduling_Automated','Irrigation_scheduling_Manual',
+                             'Black_vine_weevil_treatment_No','Black_vine_weevil_treatment_Yes',
+                             'Desiccant_herbicides_No','Desiccant_herbicides_Yes',
+                             'Spring_pruning_method_Chemical', 'Spring_pruning_method_Mechanical',
+                            'Spring_pruning_method_Mowed','Spring_pruning_method_None','Incidence'))
+
+dim(df_rf)
+
+# Variable selection
+
+library(Boruta)
+library(mlbench)
+
+
+set.seed(123)
+boruta <- Boruta(Incidence ~ ., data = df_rf, doTrace = 2, maxRuns = 500)
+print(boruta)
+
+png(file = "boruta.png", ,width=25,height=20,units="cm" , res = 1000)
+p <- plot(boruta, las = 2, cex.axis = 0.3, xlab = "") 
+title ('Variable selection')
+# Adjust margins: bottom, left, top, right
+dev.off()
+
+
+plotImpHistory(boruta)
+
+bor <- TentativeRoughFix(boruta)
+print(bor)
+
+attStats(boruta)
+
+# After Boruta package
+
+
+df_rf <- subset(df_v1, select=c("Year_planted", "Last_irrigation_date", "Salts",
+                                "Na", "OM", "Ca", "S", "Fe", "Mn", "Cu",
+                                "B", "PMN", "Org_C", "Org_N", "Total_N_applied", "Temp_Winter",
+                                "Temp_Spring", "Temp_Summer", "Precip_Autumn",
+                                "Precip_Winter", "Precip_Spring", "Precip_Summer",
+                                "Irrigation.source_Canal", "Irrigation.source_Well",
+                                "Spring_pruning_method_Mechanical",
+                                "Spring_pruning_method_None", 
+                                "Incidence"))
+
+
+dim(df_rf)
+
+
+
+# Splitting data in train and test data
+library(caTools)
+sample <- sample(c(TRUE, FALSE), nrow(df_rf), replace=TRUE, prob=c(0.9,0.1))
+train  <- df_rf[sample, ]
+test   <- df_rf[!sample, ]
+
+
+
+# best parameter
+# https://www.listendata.com/2014/11/random-forest-with-r.html
+
+mtry <- tuneRF(train[-1],train$Incidence, ntreeTry=500,
+               stepFactor=1.5,improve=0.01, trace=TRUE, plot=TRUE)
+best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+
+print(mtry)
+print(best.m)
+
+set.seed(123)
+rf_model  <-randomForest(Incidence ~ ., data = train, mtry=best.m, importance=TRUE,ntree=500)
+
+
+# Print the model summary
+print(rf_model)
+
+## Accuracy
+
+rf_pred <- predict(rf_model, df_rf) # predictions
+
+sqrt(mean(rf_pred - df_rf$Incidence)^2)
+
+
+## Variable importance
+X <- df_rf[which(names(df_rf) != "Incidence")]
+predictor <- Predictor$new(rf_model, data = X, y = df_rf$Incidence)
+
+imp <- FeatureImp$new(predictor, loss = "mae")
+
+imp.dat <- imp$results
+
+
+png("variable importance_rf.png",width=30,height=25,units="cm" , res = 1000)
+ggplot(imp.dat, aes(y=reorder(feature, importance), x=importance)) +
+  geom_bar(stat='identity', fill = 4) + 
+  theme_classic() + scale_x_continuous(breaks = seq(0.99, 1.45, by = 0.05)) +
+  labs(x = "Permutation variable importance", y = "Variable", tag = "")
+dev.off()
+
+
+
+interact <- Interaction$new(predictor, grid.size = 15)
+
+png("interaction.png",width=15,height=12,units="cm" , res = 1000)
+plot(interact, las = 2, cex.axis = 0.3) + theme_classic() 
+dev.off()
+
+interact$results
+
+# Respective interaction
+interact <- Interaction$new(predictor, feature = "Year_planted", grid.size = 15)
+i1 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Last_irrigation_date", grid.size = 15)
+i2 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Salts", grid.size = 15)
+i3 = plot(interact) + theme_classic()
+
+png("Salts.png",width=15,height=12,units="cm" , res = 1000)
+plot(interact) + theme_classic() 
+dev.off() 
+
+interact <- Interaction$new(predictor, feature = "Na", grid.size = 15)
+i4 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "OM", grid.size = 15)
+i5 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Ca", grid.size = 15)
+i6 = plot(interact) + theme_classic()
+
+png("Ca.png",width=15,height=12,units="cm" , res = 1000)
+plot(interact) + theme_classic()
+dev.off()
+
+
+interact <- Interaction$new(predictor, feature = "S", grid.size = 15)
+i7 = plot(interact) + theme_classic()
+
+png("S.png",width=15,height=12,units="cm" , res = 1000)
+plot(interact) + theme_classic()
+dev.off()
+
+
+interact <- Interaction$new(predictor, feature = "Fe", grid.size = 15)
+i8 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Mn", grid.size = 15)
+i9 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Cu", grid.size = 15)
+i10 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "B", grid.size = 15)
+i11 = plot(interact) + theme_classic()
+
+png("B.png",width=15,height=12,units="cm" , res = 1000)
+plot(interact) + theme_classic()
+dev.off()
+
+
+interact <- Interaction$new(predictor, feature = "PMN", grid.size = 15)
+i12 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Org_C", grid.size = 15)
+i13 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Org_N", grid.size = 15)
+i14 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Total_N_applied", grid.size = 15)
+i15 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Temp_Winter", grid.size = 15)
+i16 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Temp_Spring", grid.size = 15)
+i17 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Temp_Summer", grid.size = 15)
+i18 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Precip_Autumn", grid.size = 15)
+i19 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Precip_Winter", grid.size = 15)
+i20 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Precip_Spring", grid.size = 15)
+i21 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Precip_Summer", grid.size = 15)
+i22 = plot(interact) + theme_classic()
+
+png("Precip_Summer.png",width=15,height=12,units="cm" , res = 1000)
+plot(interact) + theme_classic()
+dev.off()
+
+interact <- Interaction$new(predictor, feature = "Irrigation.source_Canal", grid.size = 15)
+i23 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Irrigation.source_Well", grid.size = 15)
+i24 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Spring_pruning_method_Mechanical", grid.size = 15)
+i25 = plot(interact) + theme_classic()
+
+interact <- Interaction$new(predictor, feature = "Spring_pruning_method_None", grid.size = 15)
+i26 = plot(interact) + theme_classic()
+
+
+
+# PDPs with iml
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Year_planted",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Year_planted))
+
+p1 = plot(rf.s) + ggtitle("Random Forest") + theme_classic()
+
+
+
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Last_irrigation_date",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Last_irrigation_date))
+
+p2 = plot(rf.s) + theme_classic()
+
+
+
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Salts",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Salts))
+
+p3 = plot(rf.s) + theme_classic()
+
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Na",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Na))
+
+p4 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "OM",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$OM))
+
+p5 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Ca",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Ca))
+
+p6 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "S",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$S))
+
+p7 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Fe",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Fe))
+
+p8 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Mn",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Mn))
+
+p9 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Cu",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Cu))
+
+p10 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "B",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$B))
+
+p11 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "PMN",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$PMN))
+
+p12 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Org_C",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Org_C))
+
+p13 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Org_N",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Org_N))
+
+p14 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Total_N_applied",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Total_N_applied))
+
+p15 = plot(rf.s) + theme_classic()
+
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Temp_Winter",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Temp_Winter))
+
+p16 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Temp_Spring",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Temp_Spring))
+
+p17 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Temp_Summer",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Temp_Summer))
+
+p18 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Precip_Autumn",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Precip_Autumn))
+
+p19 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Precip_Winter",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Precip_Winter))
+
+p20 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Precip_Spring",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Precip_Spring))
+
+p21 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Precip_Summer",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Precip_Summer))
+
+p22 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Irrigation.source_Canal",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Irrigation.source_Canal))
+
+p23 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Irrigation.source_Well",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Irrigation.source_Well))
+
+p24 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Spring_pruning_method_Mechanical",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Spring_pruning_method_Mechanical))
+
+p25 = plot(rf.s) + theme_classic()
+
+rf.s = Partial$new(predictor = predictor,
+                   feature = "Spring_pruning_method_None",
+                   aggregation = "pdp",
+                   ice = TRUE)
+
+rf.s$center(min(df_v1$Spring_pruning_method_None))
+
+p26 = plot(rf.s) + theme_classic()
+
+
+png("featureeffect.png",width=50,height=40,units="cm" , res = 1000)
+p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 + p13 + p14 + p15 + p16 + p17 + p18 + p19 + p20 + p21 + p22 + p23 + p24 + p25 + p26    
+dev.off()
+
+
+###
+library(ranger)
+library(kernelshap)
+library(shapviz)
+
+# Step 1: Calculate Kernel SHAP values
+# bg_X is usually a small (50-200 rows) subset of the data
+s <- kernelshap(rf_model, train[-27], bg_X = test)
+
+# Step 2: Turn them into a shapviz object
+sv <- shapviz(s)
+
+# Step 3: Gain insights...
+png(file = "shap_rf.png", width=20,height=15,units="cm" , res = 1000)
+sv_importance(sv, show_numbers = TRUE, sort_features = TRUE, 
+              max_display = 26L, kind = "beeswarm") +
+  theme_classic()
+dev.off()
+
+# Decomposition
+
+
+png(file = "partial_Mechanical1.png", width=25,height=25,units="cm" , res = 1000)
+sv_waterfall(sv, sv$X$Spring_pruning_method_Mechanical == "1") +
+  theme(axis.text = element_text(size = 11)) +
+  ggtitle("Spring pruning method",
+          subtitle = "Mechanical=1")
+dev.off()
+
+png(file = "partial_Mechanical0.png", width=25,height=25,units="cm" , res = 1000)
+sv_waterfall(sv, sv$X$Spring_pruning_method_Mechanical == "0") +
+  theme(axis.text = element_text(size = 11)) +
+  ggtitle("Spring pruning method",
+          subtitle = "Mechanical=0")
+dev.off()
+
+png(file = "partial_None1.png", width=25,height=25,units="cm" , res = 1000)
+sv_waterfall(sv, sv$X$Spring_pruning_method_None == "1") +
+  theme(axis.text = element_text(size = 11)) +
+  ggtitle("Spring pruning method",
+          subtitle = "None=1")
+dev.off()
+
+png(file = "partial_None0.png", width=25,height=25,units="cm" , res = 1000)
+sv_waterfall(sv, sv$X$Spring_pruning_method_None == "0") +
+  theme(axis.text = element_text(size = 11))+
+  ggtitle("Spring pruning method",
+          subtitle = "None=0")
+dev.off()
+
+
+
+png(file = "partial_canel1.png", width=25,height=25,units="cm" , res = 1000)
+sv_waterfall(sv, sv$X$Irrigation.source_Canal == "1") +
+  theme(axis.text = element_text(size = 11))+
+  ggtitle("Irrigation source",
+          subtitle = "Canal=1")
+dev.off()
+
+png(file = "partial_canel0.png", width=25,height=25,units="cm" , res = 1000)
+sv_waterfall(sv, sv$X$Irrigation.source_Canal == "0") +
+  theme(axis.text = element_text(size = 11))+
+  ggtitle("Irrigation source",
+          subtitle = "Canal=0")
+dev.off()
+
+
+
+png(file = "partial_well1.png", width=25,height=25,units="cm" , res = 1000)
+sv_waterfall(sv, sv$X$Irrigation.source_Well == "1") +
+  theme(axis.text = element_text(size = 11))+
+  ggtitle("Irrigation source",
+          subtitle = "Well=1")
+dev.off()
+
+png(file = "partial_well0.png", width=25,height=25,units="cm" , res = 1000)
+sv_waterfall(sv, sv$X$Irrigation.source_Well == "0") +
+  theme(axis.text = element_text(size = 11))+
+  ggtitle("Irrigation source",
+          subtitle = "Well=0")
+dev.off()
