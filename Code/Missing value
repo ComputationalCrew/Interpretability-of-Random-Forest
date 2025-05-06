@@ -1,0 +1,554 @@
+library(ggplot2)
+library(dplyr)
+library(cowplot)
+library(mice)
+library(ggplot2)
+library(ggpubr)
+library(randomForest)
+
+df <- read.csv("...")
+
+df_v1 <- subset(df, select=c('Number','Incidence',
+                             'Year.planted','Planting.material','Virus.free',
+                             'Previous.hop','Years.in.hop','Yield.lbsA',
+                             'Drip.Configuration','Drip.Emitter.Flow.Rate.gpm','Irrigation.Scheduling',
+                             'Irrigation.total.for.season','First.Irrigation.Date','Last.Irrigation.Date',
+                             'Irrigation.Source','Salts','Texture','Na','CEC',
+                             'OM','Phos','K','Ca','Mg','S','Zn',
+                             'Fe','Mn','Cu','B','Clay',
+                             'Silt','Sand','Resp.mg.CO2','NO3_N',
+                             'NH4_N','InorgN','PMN','pH','POXC',
+                             'Dissolved.org.C',
+                             'Dissolved.inorgC','WSA',
+                             'Org.C','Total.N','Org.N','Total.N.applied',
+                             'Date.of.first.N','Date.of.last.N',
+                             'Spring.pruning.method','Spring.pruning.date',
+                             'Tillage.practices','Returned.hop.trash',
+                             'Post.harvest.mowing','Percent.HSVd','Black.vine.weevil.treatment',
+                             'Black.vine.weevil.pressure','Heptachlor',
+                             'Mefenoxam','Desiccant.herbicides',
+                             'Pre_plant.fumigation',
+                             'Temp_October','Temp_November',
+                             'Temp_December','Temp_January',
+                             'Temp_Febrauray','Temp_March',
+                             'Temp_April','Temp_May',
+                             'Temp_June','Temp_July',
+                             'Precip_October','Precip_November',
+                             'Precip_December','Precip_January',
+                             'Precip_Febrauray','Precip_March',
+                             'Precip_April','Precip_May',
+                             'Precip_June','Precip_July'))
+
+colnames(df_v1) <- c('Number','Incidence',
+                     'Year_planted','Planting_material','Virus_free',
+                     'Previous_hop','Years_in_hop','Yield_lbsA',
+                     'Drip_configuration','Drip_emitter_flow_rate_gpm','Irrigation_scheduling',
+                     'Irrigation.total_for_season','First_irrigation_date','Last_irrigation_date',
+                     'Irrigation.source','Salts','Texture','Na','CEC',
+                     'OM','Phos','K','Ca','Mg','S','Zn',
+                     'Fe','Mn','Cu','B','Clay',
+                     'Silt','Sand','Resp_mg_CO2','NO3_N',
+                     'NH4_N','InorgN','PMN','pH','POXC',
+                     'Dissolved_org_C',
+                     'Dissolved_inorgC','WSA',
+                     'Org_C','Total_N','Org_N','Total_N_applied',
+                     'Date_of_first_N','Date_of_last_N',
+                     'Spring_pruning_method','Spring_pruning_date',
+                     'Tillage_practices','Returned_hop_trash',
+                     'Post_harvest_mowing','Percent_HSVd','Black_vine_weevil_treatment',
+                     'Black_vine_weevil_pressure','Heptachlor',
+                     'Mefenoxam','Desiccant_herbicides',
+                     'Pre_plant_fumigation',
+                     'Temp_October','Temp_November',
+                     'Temp_December','Temp_January',
+                     'Temp_Febrauray','Temp_March',
+                     'Temp_April','Temp_May',
+                     'Temp_June','Temp_July',
+                     'Precip_October','Precip_November',
+                     'Precip_December','Precip_January',
+                     'Precip_Febrauray','Precip_March',
+                     'Precip_April','Precip_May',
+                     'Precip_June','Precip_July')
+
+
+df_v1$Planting_material <- as.factor(df_v1$Planting_material)
+df_v1$Virus_free <- as.factor(df_v1$Virus_free)
+df_v1$Previous_hop <- as.factor(df_v1$Previous_hop)
+df_v1$Years_in_hop <- as.factor(df_v1$Years_in_hop)
+df_v1$Drip_configuration <- as.factor(df_v1$Drip_configuration)
+df_v1$Irrigation_scheduling <- as.factor(df_v1$Irrigation_scheduling)
+df_v1$Spring_pruning_method <- as.factor(df_v1$Spring_pruning_method)
+df_v1$Tillage_practices <- as.factor(df_v1$Tillage_practices)
+df_v1$Returned_hop_trash <- as.factor(df_v1$Returned_hop_trash)
+df_v1$Post_harvest_mowing <- as.factor(df_v1$Post_harvest_mowing)
+df_v1$Black_vine_weevil_treatment <- as.factor(df_v1$Black_vine_weevil_treatment)
+df_v1$Black_vine_weevil_pressure <- as.factor(df_v1$Black_vine_weevil_pressure)
+df_v1$Heptachlor <- as.factor(df_v1$Heptachlor)
+df_v1$Mefenoxam <- as.factor(df_v1$Mefenoxam)
+df_v1$Desiccant_herbicides <- as.factor(df_v1$Desiccant_herbicides)
+df_v1$Pre_plant_fumigation <- as.factor(df_v1$Pre_plant_fumigation)
+df_v1$Irrigation.source <- as.factor(df_v1$Irrigation.source)
+df_v1$Phos <- as.factor(df_v1$Phos)
+df_v1$Total_N_applied <- as.numeric(df_v1$Total_N_applied)
+
+df_v1[df_v1 == ''] <- NA
+
+Y <- sapply(df_v1, function(x) sum(is.na(x) | x == ""))
+
+
+df_v1_missing <- df_v1 %>%
+  select('Number','Incidence',
+         'Year_planted','Planting_material','Virus_free',
+         'Previous_hop','Years_in_hop','Yield_lbsA',
+         'Drip_configuration','Drip_emitter_flow_rate_gpm','Irrigation_scheduling',
+         'Irrigation.total_for_season','First_irrigation_date','Last_irrigation_date',
+         'Irrigation.source','Salts','Texture','Na','CEC',
+         'OM','Phos','K','Ca','Mg','S','Zn',
+         'Fe','Mn','Cu','B','Clay',
+         'Silt','Sand','Resp_mg_CO2','NO3_N',
+         'NH4_N','InorgN','PMN','pH','POXC',
+         'Dissolved_org_C',
+         'Dissolved_inorgC','WSA',
+         'Org_C','Total_N','Org_N','Total_N_applied',
+         'Date_of_first_N','Date_of_last_N',
+         'Spring_pruning_method','Spring_pruning_date',
+         'Tillage_practices','Returned_hop_trash',
+         'Post_harvest_mowing','Percent_HSVd','Black_vine_weevil_treatment',
+         'Black_vine_weevil_pressure','Heptachlor',
+         'Mefenoxam','Desiccant_herbicides',
+         'Pre_plant_fumigation',
+         'Temp_October','Temp_November',
+         'Temp_December','Temp_January',
+         'Temp_Febrauray','Temp_March',
+         'Temp_April','Temp_May',
+         'Temp_June','Temp_July',
+         'Precip_October','Precip_November',
+         'Precip_December','Precip_January',
+         'Precip_Febrauray','Precip_March',
+         'Precip_April','Precip_May',
+         'Precip_June','Precip_July')
+
+
+### Year_planted
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Year_planted,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Year_planted)
+mice_imputed_cart
+
+
+### Planting_material
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Planting_material,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Planting_material)
+mice_imputed_cart
+
+
+
+
+### Virus_free
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Virus_free,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Virus_free)
+mice_imputed_cart
+
+
+
+### Previous_hop 
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Previous_hop,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Previous_hop)
+mice_imputed_cart
+
+
+### Years_in_hop  
+
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Years_in_hop,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Years_in_hop)
+mice_imputed_cart
+
+
+
+## Continuous variable
+### Yield_lbsA
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Yield_lbsA,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Yield_lbsA)
+mice_imputed_cart
+
+
+
+
+### Drip_configuration
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Drip_configuration,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Drip_configuration)
+mice_imputed_cart
+
+
+
+
+### Drip_emitter_flow_rate_gpm
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Drip_emitter_flow_rate_gpm,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Drip_emitter_flow_rate_gpm)
+mice_imputed_cart
+
+
+
+### Irrigation_scheduling
+
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Irrigation_scheduling,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Irrigation_scheduling)
+mice_imputed_cart
+
+
+### Irrigation.total_for_season
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Irrigation.total_for_season,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Irrigation.total_for_season)
+mice_imputed_cart
+
+
+### First_irrigation_date
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$First_irrigation_date,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$First_irrigation_date)
+mice_imputed_cart
+
+
+### Last_irrigation_date
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Last_irrigation_date,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Last_irrigation_date)
+mice_imputed_cart
+
+### Irrigation.source
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Irrigation.source,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Irrigation.source)
+mice_imputed_cart
+
+
+### Clay
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Clay,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Clay)
+mice_imputed_cart
+
+### Silt
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Silt,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Silt)
+mice_imputed_cart
+
+
+### Sand
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Sand,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Sand)
+mice_imputed_cart
+
+### Resp_mg_CO2
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Resp_mg_CO2,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Resp_mg_CO2)
+mice_imputed_cart
+
+
+
+### NO3_N
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$NO3_N,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$NO3_N)
+mice_imputed_cart
+
+
+
+
+### NH4_N
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$NH4_N,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$NH4_N)
+mice_imputed_cart
+
+
+
+### InorgN
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$InorgN,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$InorgN)
+mice_imputed_cart
+
+### PMN
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$PMN,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$PMN)
+mice_imputed_cart
+
+
+
+### pH
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$pH,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$pH)
+mice_imputed_cart
+
+
+### POXC
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$POXC,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$POXC)
+mice_imputed_cart
+
+
+
+
+### Dissolved_org_C
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Dissolved_org_C,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Dissolved_org_C)
+mice_imputed_cart
+
+
+### Dissolved_inorgC
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Dissolved_inorgC,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Dissolved_inorgC)
+mice_imputed_cart
+
+
+
+### WSA
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$WSA,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$WSA)
+mice_imputed_cart
+
+
+
+### Org_C
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Org_C,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Org_C)
+mice_imputed_cart
+
+
+
+### Total_N
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Total_N,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Total_N)
+mice_imputed_cart
+
+
+
+
+### Org_N
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Org_N,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Org_N)
+mice_imputed_cart
+
+
+
+### Total_N_applied
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Total_N_applied,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Total_N_applied)
+mice_imputed_cart
+
+
+
+
+### Date_of_first_N
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Date_of_first_N,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Date_of_first_N)
+mice_imputed_cart
+
+
+
+### Date_of_last_N
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Date_of_last_N,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Date_of_last_N)
+mice_imputed_cart
+
+
+
+### Spring_pruning_method
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Spring_pruning_method,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Spring_pruning_method)
+mice_imputed_cart
+
+
+### Spring_pruning_date
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Spring_pruning_date,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Spring_pruning_date)
+mice_imputed_cart
+
+
+
+
+### Tillage_practices
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Tillage_practices,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Tillage_practices)
+mice_imputed_cart
+
+
+
+### Returned_hop_trash
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Returned_hop_trash,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Returned_hop_trash)
+mice_imputed_cart
+
+
+
+### Post_harvest_mowing
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Post_harvest_mowing,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Post_harvest_mowing)
+mice_imputed_cart
+
+
+
+### Percent_HSVd
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Percent_HSVd,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Percent_HSVd)
+mice_imputed_cart
+
+
+
+### Black_vine_weevil_treatment
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Black_vine_weevil_treatment,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Black_vine_weevil_treatment)
+mice_imputed_cart
+
+
+### Black_vine_weevil_pressure
+
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Black_vine_weevil_pressure,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Black_vine_weevil_pressure)
+mice_imputed_cart
+
+
+
+
+### Heptachlor
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Heptachlor,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Heptachlor)
+mice_imputed_cart
+
+
+
+### Mefenoxam
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Mefenoxam,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Mefenoxam)
+mice_imputed_cart
+
+
+
+
+### Desiccant_herbicides
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Desiccant_herbicides,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Desiccant_herbicides)
+mice_imputed_cart
+
+
+
+
+### Pre_plant_fumigation
+
+
+mice_imputed_cart <- data.frame(
+  original = df_v1$Pre_plant_fumigation,
+  imputed_cart = complete(mice(df_v1_missing, method = "cart"))$Pre_plant_fumigation)
+mice_imputed_cart
+
